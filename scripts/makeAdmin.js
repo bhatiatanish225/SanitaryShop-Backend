@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 async function promoteToAdmin() {
   try {
     const updatedUser = await prisma.user.update({
-      where: { email: 'your@email.com' }, // Replace this
+      where: { email: 'tbhatia0225@gmail.com' }, // Replace this
       data: { role: 'admin' },
     });
     console.log('✅ User promoted to admin:', updatedUser);

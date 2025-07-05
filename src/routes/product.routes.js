@@ -8,8 +8,11 @@ const {
 } = require('../controllers/product.controller');
 const { protect, adminOnly } = require('../middleware/auth');
 
-router.get('/', getAllProducts);
-router.get('/:id', getProductById);
+// Require login for viewing products
+router.get('/', protect, getAllProducts);
+router.get('/:id', protect, getProductById);
+
+// Admin-only routes
 router.post('/', protect, adminOnly, createProduct);
 router.put('/:id', protect, adminOnly, updateProduct);
 router.delete('/:id', protect, adminOnly, deleteProduct);

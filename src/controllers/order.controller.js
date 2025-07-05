@@ -1,107 +1,64 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const fs = require('fs');
-const PDFDocument = require('pdfkit');
-const path = require('path');
 
-const generateInvoice = async (order) => {
-  const doc = new PDFDocument();
-  const filename = `invoice-${order.id}.pdf`;
-  const filePath = path.join(__dirname, '..', 'invoices', filename);
+// 🧾 Create order from cart
+exports.createOrder = async (req, res) => {
+  const userId = req.user.id;
 
-  doc.pipe(fs.createWriteStream(filePath));
-
-  doc.fontSize(20).text('Sanitary Shop Invoice', { align: 'center' });
-  doc.moveDown();
-  doc.fontSize(12).text(`Order ID: ${order.id}`);
-  doc.text(`Customer: ${order.user.name} (${order.user.email})`);
-  doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`);
-  doc.moveDown();
-
-  doc.text('Items:', { underline: true });
-  order.items.forEach((item) => {
-    doc.text(`${item.product.name} x${item.quantity} = ₹${item.price * item.quantity}`);
+  const cartItems = await prisma.cartItem.findMany({
+    where: { userId },
+    include: { product: true }
   });
 
-  doc.moveDown();
-  doc.fontSize(14).text(`Total: ₹${order.totalPrice}`, { bold: true });
-
-  doc.end();
-
-  return filePath;
-};
-
-exports.createOrder = async (req, res) => {
-  const { items } = req.body;
+  if (cartItems.length === 0)
+    return res.status(400).json({ message: 'Cart is empty' });
 
   let totalPrice = 0;
-  const orderItems = [];
+  const orderItemsData = [];
 
-  for (const item of items) {
-    const product = await prisma.product.findUnique({ where: { id: item.productId } });
-    const itemTotal = product.price * item.quantity;
-    totalPrice += itemTotal;
+  for (const item of cartItems) {
+    const priceWithTax = item.product.price + (item.product.price * (item.product.taxPercent || 0) / 100);
+    totalPrice += priceWithTax * item.quantity;
 
-    orderItems.push({
+    orderItemsData.push({
       productId: item.productId,
       quantity: item.quantity,
-      price: product.price
+      price: priceWithTax
     });
   }
 
   const order = await prisma.order.create({
     data: {
-      userId: req.user.id,
+      userId,
       totalPrice,
       items: {
-        create: orderItems
+        create: orderItemsData
       }
     },
     include: {
-      user: true,
-      items: {
-        include: {
-          product: true
-        }
-      }
+      items: true
     }
   });
 
-  const invoicePath = await generateInvoice(order);
-  res.status(201).json({ order, invoice: invoicePath });
+  // Clear cart
+  await prisma.cartItem.deleteMany({ where: { userId } });
+
+  res.status(201).json(order);
 };
 
-exports.getUserOrders = async (req, res) => {
-  const filter = req.user.role === 'admin' ? {} : { userId: req.user.id };
+// 📋 Get my orders
+exports.getMyOrders = async (req, res) => {
+  const userId = req.user.id;
+
   const orders = await prisma.order.findMany({
-    where: filter,
+    where: { userId },
     include: {
-      user: true,
-      items: { include: { product: true } }
-    }
+      items: {
+        include: { product: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' }
   });
+
   res.json(orders);
-};
-
-exports.getOrderById = async (req, res) => {
-  const order = await prisma.order.findUnique({
-    where: { id: parseInt(req.params.id) },
-    include: {
-      user: true,
-      items: { include: { product: true } }
-    }
-  });
-  res.json(order);
-};
-
-exports.updateStatus = async (req, res) => {
-  const { status } = req.body;
-  const { id } = req.params;
-
-  const updated = await prisma.order.update({
-    where: { id: parseInt(id) },
-    data: { status }
-  });
-
-  res.json(updated);
 };
