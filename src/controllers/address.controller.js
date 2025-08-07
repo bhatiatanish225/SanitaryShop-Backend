@@ -15,11 +15,6 @@ exports.addAddress = async (req, res) => {
 
     // Check if city is one of tricity: chandigarh, mohali, panchkula (case-insensitive)
     const allowedCities = ['chandigarh', 'mohali', 'panchkula']
-    if (!allowedCities.includes(city.trim().toLowerCase())) {
-      return res
-        .status(400)
-        .json({ message: 'City must be one of: Chandigarh, Mohali, Panchkula' })
-    }
 
     const address = await prisma.address.create({
       data: {

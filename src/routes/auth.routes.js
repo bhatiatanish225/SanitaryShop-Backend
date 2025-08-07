@@ -17,4 +17,12 @@ router.put("/address", protect, updateAddress);
 router.post("/send-code", authController.sendVerificationCode);
 router.post("/test-verify-otp", authController.testVerifyOTP);
 
+// FORGOT PASSWORD ROUTES
+router.post("/forgot-password", authController.forgotPassword);
+router.post(
+  "/verify-forgot-password-code",
+  authController.verifyForgotPasswordCode
+);
+router.post("/reset-password", authController.resetPassword);
+
 module.exports = router;

@@ -16,6 +16,7 @@ phone String
 city String
 role String @default("user")
 isBlocked Boolean @default(false)
+isTricity Boolean @default(false)
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
 
@@ -65,24 +66,37 @@ createdAt DateTime @default(now())
 
 model Product {
 id Int @id @default(autoincrement())
-name String
+itemCode String @unique // CSV: Item Code
+name String // CSV: Item Description
 description String?
 imageUrl String?
-price Float
+price Float // CSV: MRP
 originalPrice Float?
 isFeatured Boolean @default(false)
 isBestseller Boolean @default(false)
 categoryId Int
 category Category @relation(fields: [categoryId], references: [id])
+brandGroup String? // CSV: Brand Group
 availableStock Int @default(0)
-stockQuantity Int? @default(0) // Alias for availableStock
+stockQuantity Int? @default(0) // CSV: Stock
 rating Float? @default(0.0)
 reviewsCount Int? @default(0)
 taxPercent Float? @default(0.0)
 createdAt DateTime @default(now())
-orderItems OrderItem[]
 
+sdp Float? // CSV: SDP
+nrp Float? // CSV: NRP*
+mrp Float? // CSV: MRP
+hsn String? // CSV: HSN
+sgst Float? // CSV: SGST
+cgst Float? // CSV: CGST
+igst Float? // CSV: IGST
+cess Float? // CSV: CESS
+
+orderItems OrderItem[]
 CartItem CartItem[]
+images ProductImage[] // Relation to ProductImage model
+@@map("Product") // Map to the Product table in the database
 }
 
 model Order {
@@ -142,4 +156,20 @@ quantity Int
 createdAt DateTime @default(now())
 
 Cart Cart[]
+}
+
+//THIS MODEL iS FOR IMAGES OF PRODUCT
+model ProductImage {
+id Int @id @default(autoincrement())
+productId Int
+imageUrl String
+altText String? // Optional alt text for the image
+sortOrder Int @default(0) // To maintain order of images
+createdAt DateTime @default(now())
+updatedAt DateTime @updatedAt
+
+//relations - CASCADE DELETE when product is deleted
+product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+@@map("product_images")
 }
