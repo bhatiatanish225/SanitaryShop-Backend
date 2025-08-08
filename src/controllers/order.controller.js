@@ -4,11 +4,28 @@ const prisma = new PrismaClient()
 // 🧾 Create order from cart OR from direct order data
 exports.createOrder = async (req, res) => {
   const userId = req.user.id
-  // Accept addressId from frontend
-  const { total_amount, addressId, payment_method, order_items, user_id } =
-    req.body
+  // Accept data from frontend
+  const {
+    total_amount,
+    addressId,
+    payment_method,
+    order_items,
+    user_id,
+    delivery_address,
+    payment_id,
+  } = req.body
 
-  // Validate addressId if provided
+  console.log(
+    total_amount,
+    addressId,
+    payment_method,
+    order_items,
+    user_id,
+    delivery_address,
+    payment_id
+  )
+
+  // If addressId is provided, validate it
   if (addressId) {
     const address = await prisma.address.findUnique({
       where: { id: addressId },
@@ -18,8 +35,8 @@ exports.createOrder = async (req, res) => {
     }
   }
 
+  // If direct order data is sent from frontend (not from cart)
   if (total_amount && order_items) {
-    // Frontend is sending order data directly (from checkout)
     try {
       const orderItemsData = order_items.map((item) => ({
         productId: parseInt(item.product_id),
@@ -50,7 +67,9 @@ exports.createOrder = async (req, res) => {
         ...order,
         total_amount: order.totalAmount || order.totalPrice,
         address_id: order.addressId,
+        delivery_address: order.deliveryAddress,
         payment_method: order.paymentMethod,
+        payment_id: order.paymentId,
       }
 
       res.status(201).json(transformedOrder)
@@ -109,6 +128,7 @@ exports.createOrder = async (req, res) => {
       ...order,
       total_amount: order.totalAmount || order.totalPrice,
       address_id: order.addressId,
+      delivery_address: order.deliveryAddress,
     }
 
     res.status(201).json(transformedOrder)

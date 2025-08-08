@@ -24,6 +24,9 @@ exports.sendVerificationCode = async (req, res) => {
     console.log(`Stored OTP for ${email} in Redis`)
     // FOR DEVELOPMENT: Return the code directly in response for testing
     if (process.env.NODE_ENV === 'development') {
+      console.log('Development mode: Returning code directly, code:', code)
+      return res.status(200).json({ code: code, email: email })
+    } else {
       console.log('Production mode: Sending code via email')
       // FOR PRODUCTION: Send email
       try {
@@ -93,15 +96,16 @@ exports.register = async (req, res) => {
     }
 
     // Only Tricity cities allowed
-    const allowedCities = ['Chandigarh', 'Mohali', 'Panchkula']
-    if (!allowedCities.includes(city)) {
-      return res.status(400).json({ message: 'Only Tricity users allowed' })
-    }
 
     // Check if user already exists
     const exists = await prisma.user.findUnique({ where: { email } })
     if (exists) return res.status(400).json({ message: 'User already exists' })
-
+    let tricity = true
+    const allowedCities = ['Chandigarh', 'Mohali', 'Panchkula']
+    if (!allowedCities.includes(city)) {
+      // todo implement here the user
+      tricity = false
+    }
     // Always use Redis for OTP verification
 
     // OTP is valid, remove from Redis
@@ -110,7 +114,7 @@ exports.register = async (req, res) => {
     // Hash password and create user
     const hashed = await bcrypt.hash(password, salt)
     const user = await prisma.user.create({
-      data: { name, phone, email, password: hashed, city },
+      data: { name, phone, email, password: hashed, city, isTricity: tricity },
     })
 
     const token = generateToken(user)
@@ -227,5 +231,174 @@ exports.updateAddress = async (req, res) => {
   } catch (error) {
     console.error('Update address error:', error)
     res.status(500).json({ message: 'Internal server error' })
+  }
+}
+// 🔓 Forgot Password - Send reset code
+exports.forgotPassword = async (req, res) => {
+  const { email } = req.body
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' })
+  }
+
+  try {
+    // Check if user exists
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    // Generate OTP
+    const code = crypto.randomInt(100000, 999999).toString()
+    await redis.set(`otp:${email}`, code, 'EX', 10 * 60)
+    console.log(`Generated password reset code ${code} for ${email}`)
+
+    // FOR DEVELOPMENT: Return the code directly in response for testing
+    if (false && process.env.NODE_ENV === 'development') {
+      console.log('Development mode: Returning code directly, code:', code)
+      return res.status(200).json({ code: code, email: email })
+    } else {
+      // FOR PRODUCTION: Send email with same template as verification
+      console.log('Production mode: Sending code via email')
+      try {
+        const transporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS,
+          },
+        })
+
+        const mailOptions = {
+          from: `Mitttal and Co. <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: `Your Password Reset Code is ${code} - Mitttal and Co.`,
+          html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+            <div style="background-color: #2e3f47; padding: 30px; border-radius: 10px; text-align: center;">
+              <h1 style="color: #c6aa55; margin: 0; font-size: 28px;">Mitttal and Co.</h1>
+              <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 16px;">Premium Sanitary Solutions</p>
+            </div>
+            <div style="background-color: #ffffff; padding: 40px; border-radius: 0 0 10px 10px;">
+              <h2 style="color: #2e3f47; margin: 0 0 20px 0;">Password Reset Code</h2>
+              <p style="color: #666; font-size: 16px; line-height: 1.5;">
+                You requested to reset your password for your Mitttal and Co. account. Use the code below to proceed:
+              </p>
+              <div style="background-color: #f8f9fa; border: 2px dashed #c6aa55; padding: 20px; margin: 20px 0; text-align: center; border-radius: 10px;">
+                <h1 style="color: #2e3f47; margin: 0; font-size: 36px; font-weight: bold; letter-spacing: 8px;">${code}</h1>
+              </div>
+              <p style="color: #666; font-size: 14px;">
+                This code will expire in <strong>10 minutes</strong>. If you didn't request this password reset, please ignore this email.
+              </p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              <p style="color: #999; font-size: 12px; text-align: center;">
+                © 2024 Mitttal and Co. All rights reserved.
+              </p>
+            </div>
+          </div>
+        `,
+        }
+
+        await transporter.sendMail(mailOptions)
+        console.log('Password reset email sent successfully to:', email)
+        res.json({ message: 'Password reset code sent to your email' })
+      } catch (emailError) {
+        console.error('Email sending error:', emailError)
+        res
+          .status(500)
+          .json({ message: 'Failed to send password reset code via email' })
+      }
+    }
+  } catch (error) {
+    console.error('Error in forgotPassword:', error)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+}
+// 🔐 Verify forgot password code and generate reset token
+exports.verifyForgotPasswordCode = async (req, res) => {
+  const { email, code } = req.body
+  if (!email || !code) {
+    return res.status(400).json({ message: 'Email and code are required' })
+  }
+  try {
+    // Check if OTP exists and is valid
+    const storedCode = await redis.get(`otp:${email}`)
+    if (!storedCode) {
+      return res.status(404).json({ message: 'Code not found or expired' })
+    }
+    if (storedCode !== code) {
+      return res.status(400).json({ message: 'Invalid code' })
+    }
+
+    // OTP is valid - delete it and create a password reset token
+    await redis.del(`otp:${email}`)
+
+    // Generate a secure reset token
+    const resetToken = crypto.randomBytes(32).toString('hex')
+
+    // Store reset token with 15-minute expiry (enough time to reset password)
+    await redis.set(`reset:${email}`, resetToken, 'EX', 15 * 60)
+
+    console.log(`Generated password reset token for ${email}`)
+
+    return res.status(200).json({
+      message: 'Code verified successfully',
+      resetToken: resetToken, // Frontend will use this for password reset
+      email: email,
+    })
+  } catch (error) {
+    console.error('Error in verifyForgotPasswordCode:', error)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+}
+// 🔄 Reset password (requires valid reset token)
+exports.resetPassword = async (req, res) => {
+  const { email, newPassword, resetToken } = req.body
+
+  if (!email || !newPassword || !resetToken) {
+    return res.status(400).json({
+      message: 'Email, new password, and reset token are required',
+    })
+  }
+  try {
+    // Check if reset token exists and is valid
+    const storedToken = await redis.get(`reset:${email}`)
+    if (!storedToken) {
+      return res.status(401).json({
+        message:
+          'Reset token not found or expired. Please verify your OTP again.',
+      })
+    }
+
+    if (storedToken !== resetToken) {
+      return res.status(401).json({
+        message: 'Invalid reset token. Please verify your OTP again.',
+      })
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' })
+    }
+
+    // Reset token is valid - proceed with password reset
+    const salt = await bcrypt.genSalt(10)
+    const hashedPassword = await bcrypt.hash(newPassword, salt)
+
+    await prisma.user.update({
+      where: { email },
+      data: { password: hashedPassword },
+    })
+
+    await redis.del(`reset:${email}`)
+
+    console.log('Password reset successfully for:', email)
+    return res.status(200).json({
+      message:
+        'Password reset successfully. You can now login with your new password.',
+    })
+  } catch (error) {
+    console.error('Error in resetPassword:', error)
+    return res.status(500).json({ message: 'Internal server error' })
   }
 }
