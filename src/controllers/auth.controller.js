@@ -22,27 +22,23 @@ exports.sendVerificationCode = async (req, res) => {
 
     await redis.set(`otp:${email}`, code, 'EX', 10 * 60) // Store OTP with 10 min expiry
     console.log(`Stored OTP for ${email} in Redis`)
-    // FOR DEVELOPMENT: Return the code directly in response for testing
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Development mode: Returning code directly, code:', code)
-      return res.status(200).json({ code: code, email: email })
-    } else {
-      console.log('Production mode: Sending code via email')
-      // FOR PRODUCTION: Send email
-      try {
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        })
+    // FOR DEVELOPMENT: Return the code directly in response for testin
+    console.log('Production mode: Sending code via email')
+    // FOR PRODUCTION: Send email
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      })
 
-        const mailOptions = {
-          from: `Mitttal and Co. <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: `Your Verification Code is ${code} - Mitttal and Co.`,
-          html: `
+      const mailOptions = {
+        from: `Mitttal and Co. <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: `Your Verification Code is ${code} - Mitttal and Co.`,
+        html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
             <div style="background-color: #2e3f47; padding: 30px; border-radius: 10px; text-align: center;">
               <h1 style="color: #c6aa55; margin: 0; font-size: 28px;">Mitttal and Co.</h1>
@@ -66,17 +62,16 @@ exports.sendVerificationCode = async (req, res) => {
             </div>
           </div>
         `,
-        }
-
-        await transporter.sendMail(mailOptions)
-        console.log('Email sent successfully to:', email)
-        res.json({ message: 'Verification code sent to your email' })
-      } catch (emailError) {
-        console.error('Email sending error:', emailError)
-        res
-          .status(500)
-          .json({ message: 'Failed to send verification code via email' })
       }
+
+      await transporter.sendMail(mailOptions)
+      console.log('Email sent successfully to:', email)
+      res.json({ message: 'Verification code sent to your email' })
+    } catch (emailError) {
+      console.error('Email sending error:', emailError)
+      res
+        .status(500)
+        .json({ message: 'Failed to send verification code via email' })
     }
   } catch (error) {
     console.error('General error in sendVerificationCode:', error)
@@ -253,26 +248,23 @@ exports.forgotPassword = async (req, res) => {
     console.log(`Generated password reset code ${code} for ${email}`)
 
     // FOR DEVELOPMENT: Return the code directly in response for testing
-    if (false && process.env.NODE_ENV === 'development') {
-      console.log('Development mode: Returning code directly, code:', code)
-      return res.status(200).json({ code: code, email: email })
-    } else {
-      // FOR PRODUCTION: Send email with same template as verification
-      console.log('Production mode: Sending code via email')
-      try {
-        const transporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-          },
-        })
 
-        const mailOptions = {
-          from: `Mitttal and Co. <${process.env.EMAIL_USER}>`,
-          to: email,
-          subject: `Your Password Reset Code is ${code} - Mitttal and Co.`,
-          html: `
+    // FOR PRODUCTION: Send email with same template as verification
+    console.log('Production mode: Sending code via email')
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS,
+        },
+      })
+
+      const mailOptions = {
+        from: `Mitttal and Co. <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: `Your Password Reset Code is ${code} - Mitttal and Co.`,
+        html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
             <div style="background-color: #2e3f47; padding: 30px; border-radius: 10px; text-align: center;">
               <h1 style="color: #c6aa55; margin: 0; font-size: 28px;">Mitttal and Co.</h1>
@@ -296,17 +288,16 @@ exports.forgotPassword = async (req, res) => {
             </div>
           </div>
         `,
-        }
-
-        await transporter.sendMail(mailOptions)
-        console.log('Password reset email sent successfully to:', email)
-        res.json({ message: 'Password reset code sent to your email' })
-      } catch (emailError) {
-        console.error('Email sending error:', emailError)
-        res
-          .status(500)
-          .json({ message: 'Failed to send password reset code via email' })
       }
+
+      await transporter.sendMail(mailOptions)
+      console.log('Password reset email sent successfully to:', email)
+      res.json({ message: 'Password reset code sent to your email' })
+    } catch (emailError) {
+      console.error('Email sending error:', emailError)
+      res
+        .status(500)
+        .json({ message: 'Failed to send password reset code via email' })
     }
   } catch (error) {
     console.error('Error in forgotPassword:', error)
