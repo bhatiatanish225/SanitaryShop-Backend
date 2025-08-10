@@ -16,13 +16,9 @@ exports.createOrder = async (req, res) => {
   } = req.body
 
   console.log(
-    total_amount,
     addressId,
-    payment_method,
-    order_items,
-    user_id,
-    delivery_address,
-    payment_id
+
+    'this is the address data'
   )
 
   // If addressId is provided, validate it
@@ -49,7 +45,7 @@ exports.createOrder = async (req, res) => {
           userId: user_id || userId,
           totalPrice: parseFloat(total_amount),
           totalAmount: parseFloat(total_amount),
-          addressId: addressId || null,
+          addressId: addressId,
           paymentMethod: payment_method,
           items: {
             create: orderItemsData,
