@@ -435,6 +435,121 @@ router.get("/pincodes", protect, adminOnly, addressController.getAllPincodes);
 
 ---
 
+## 🛒 Cart Management
+
+### Cart Controller (`src/controllers/cart.controller.js`)
+
+#### Added Cart Functionality:
+
+```javascript
+// Add item to cart (sets exact quantity)
+exports.addToCart = async (req, res) => {
+  // Finds or creates user cart
+  // Sets exact quantity (not additive)
+  // Creates cartItem with cart relation
+};
+
+// Get user's cart items
+exports.getCart = async (req, res) => {
+  // Returns all cart items for user
+  // Includes product and category data
+};
+
+// Remove single item from cart (decrement by 1)
+exports.removeFromCart = async (req, res) => {
+  // Decrements quantity by 1
+  // Removes item completely if quantity = 1
+};
+
+// Remove all instances of a product from cart
+exports.deleteAllFromCart = async (req, res) => {
+  // Deletes all cart items for specific product
+};
+```
+
+#### Cart Route Structure (`src/routes/cart.routes.js`):
+
+```javascript
+router.use(protect); // All cart routes require authentication
+router.post("/", addToCart); // POST /api/cart
+router.get("/", getCart); // GET /api/cart
+router.delete("/:id", removeFromCart); // DELETE /api/cart/:id
+router.delete("/all/:id", deleteAllFromCart); // DELETE /api/cart/all/:id
+```
+
+#### Route Endpoints:
+
+- `POST /api/cart` - **Auth Required** - Add/Update item in cart
+- `GET /api/cart` - **Auth Required** - Get user's cart items
+- `DELETE /api/cart/:id` - **Auth Required** - Remove 1 quantity of product
+- `DELETE /api/cart/all/:id` - **Auth Required** - Remove all quantities of product
+
+#### Important Cart Behavior:
+
+**POST /api/cart (addToCart):**
+
+- **Sets exact quantity** (not additive)
+- If item exists: Updates to the provided quantity
+- If item doesn't exist: Creates new cart item
+- Automatically creates cart for user if needed
+- Includes required cart relation for Prisma
+
+**DELETE /api/cart/:id (removeFromCart):**
+
+- Decrements quantity by 1
+- If quantity becomes 0, removes item completely
+- Uses productId as the ID parameter
+
+**DELETE /api/cart/all/:id (deleteAllFromCart):**
+
+- Removes all instances of a product from cart
+- Uses productId as the ID parameter
+
+#### Frontend Integration Examples:
+
+```javascript
+// Add to cart (sets exact quantity)
+const addToCart = async (productId, quantity) => {
+  const response = await fetch("/api/cart", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ productId, quantity }),
+  });
+  return response.json();
+};
+
+// Get cart items
+const getCart = async () => {
+  const response = await fetch("/api/cart", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.json();
+};
+
+// Remove one item (for minus button)
+const decrementCart = async (productId) => {
+  const response = await fetch(`/api/cart/${productId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.json();
+};
+
+// Remove all items of a product
+const removeAllFromCart = async (productId) => {
+  const response = await fetch(`/api/cart/all/${productId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.json();
+};
+```
+
+---
+
 ## 🔒 Authentication & Security
 
 ### Security Levels:
