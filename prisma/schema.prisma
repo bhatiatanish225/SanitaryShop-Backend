@@ -24,10 +24,19 @@ orders Order[]
 addresses Address[]
 Cart Cart[]
 CartItem CartItem[]
+
+@@index([email])
+@@index([phone])
+@@index([role])
+@@index([isBlocked])
+@@index([isTricity])
+@@index([createdAt])
 }
 
 model Address {
 id Int @id @default(autoincrement())
+pincodeId Int?
+pincode Pincode? @relation(fields: [pincodeId], references: [id])
 userId Int
 user User @relation(fields: [userId], references: [id])
 label String // e.g. Home, Work
@@ -35,9 +44,24 @@ house String // House number and floor
 street String
 city String
 landmark String?
-address1 String? // FREE FORM AGAR BHARNA HAI TOH BHARO
+address1 String?
 createdAt DateTime @default(now())
 orders Order[]
+
+@@index([pincodeId])
+@@index([userId])
+@@index([city])
+@@index([createdAt])
+}
+
+model Pincode {
+id Int @id @default(autoincrement())
+code Int @unique @db.Integer // Ensures pincode is a valid integer
+deliveryPrice Float @db.DoublePrecision // Ensures proper decimal handling
+addresses Address[]
+
+@@index([code])
+@@index([deliveryPrice])
 }
 
 model EmailVerification {
@@ -46,6 +70,11 @@ email String
 code String
 expiresAt DateTime
 createdAt DateTime @default(now())
+
+@@index([email])
+@@index([code])
+@@index([expiresAt])
+@@index([createdAt])
 }
 
 model BlockedUser {
@@ -53,6 +82,9 @@ id Int @id @default(autoincrement())
 email String @unique
 reason String?
 createdAt DateTime @default(now())
+
+@@index([email])
+@@index([createdAt])
 }
 
 model Category {
@@ -62,6 +94,9 @@ description String?
 imageUrl String?
 products Product[]
 createdAt DateTime @default(now())
+
+@@index([name])
+@@index([createdAt])
 }
 
 model Product {
@@ -74,6 +109,7 @@ price Float // CSV: MRP
 originalPrice Float?
 isFeatured Boolean @default(false)
 isBestseller Boolean @default(false)
+isPipe Boolean @default(false)
 categoryId Int
 category Category @relation(fields: [categoryId], references: [id])
 brandGroup String? // CSV: Brand Group
@@ -96,6 +132,19 @@ cess Float? // CSV: CESS
 orderItems OrderItem[]
 CartItem CartItem[]
 images ProductImage[] // Relation to ProductImage model
+
+@@index([itemCode])
+@@index([name])
+@@index([categoryId])
+@@index([isFeatured])
+@@index([isBestseller])
+@@index([isPipe])
+@@index([brandGroup])
+@@index([availableStock])
+@@index([price])
+@@index([rating])
+@@index([createdAt])
+@@index([hsn])
 @@map("Product") // Map to the Product table in the database
 }
 
@@ -113,6 +162,13 @@ createdAt DateTime @default(now())
 items OrderItem[]
 
 payment Payment?
+
+@@index([userId])
+@@index([addressId])
+@@index([status])
+@@index([paymentMethod])
+@@index([createdAt])
+@@index([totalAmount])
 }
 
 model OrderItem {
@@ -123,6 +179,10 @@ productId Int
 product Product @relation(fields: [productId], references: [id])
 quantity Int
 price Float
+
+@@index([orderId])
+@@index([productId])
+@@index([price])
 }
 
 model Payment {
@@ -135,6 +195,12 @@ signature String
 amount Float
 status String
 createdAt DateTime @default(now())
+
+@@index([paymentId])
+@@index([orderRef])
+@@index([status])
+@@index([amount])
+@@index([createdAt])
 }
 
 model Cart {
@@ -144,10 +210,16 @@ user User @relation(fields: [userId], references: [id])
 items CartItem[]
 createdAt DateTime @default(now())
 updatedAt DateTime @updatedAt
+
+@@index([userId])
+@@index([createdAt])
+@@index([updatedAt])
 }
 
 model CartItem {
 id Int @id @default(autoincrement())
+cartId Int
+cart Cart @relation(fields: [cartId], references: [id])
 userId Int
 user User @relation(fields: [userId], references: [id])
 productId Int
@@ -155,7 +227,10 @@ product Product @relation(fields: [productId], references: [id])
 quantity Int
 createdAt DateTime @default(now())
 
-Cart Cart[]
+@@index([cartId])
+@@index([userId])
+@@index([productId])
+@@index([createdAt])
 }
 
 //THIS MODEL iS FOR IMAGES OF PRODUCT
@@ -171,5 +246,8 @@ updatedAt DateTime @updatedAt
 //relations - CASCADE DELETE when product is deleted
 product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
+@@index([productId])
+@@index([sortOrder])
+@@index([createdAt])
 @@map("product_images")
 }
