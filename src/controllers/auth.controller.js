@@ -7,6 +7,25 @@ const redis = require('../utils/redis') // Import Redis client
 const prisma = new PrismaClient()
 const dotenv = require('dotenv').config()
 
+exports.deleteUser = async (req, res) => {
+  try {
+    const userId = req.user?.id
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User not authenticated' })
+    }
+
+    await prisma.user.delete({
+      where: { id: userId },
+    })
+
+    return res.status(200).json({ message: 'User deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting user:', error)
+    return res.status(500).json({ message: 'Internal server error' })
+  }
+}
+
 // 📧 Send email verification code
 exports.sendVerificationCode = async (req, res) => {
   try {
