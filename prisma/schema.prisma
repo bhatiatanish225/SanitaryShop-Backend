@@ -1,253 +1,253 @@
 generator client {
-provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-provider = "postgresql"
-url = env("DATABASE_URL")
+  provider = "postgresql"
+  url = env("DATABASE_URL")
 }
 
 model User {
-id Int @id @default(autoincrement())
-name String
-email String @unique
-password String
-phone String
-city String
-role String @default("user")
-isBlocked Boolean @default(false)
-isTricity Boolean @default(false)
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  id Int @id @default(autoincrement())
+  name String
+  email String @unique
+  password String
+  phone String
+  city String
+  role String @default("user")
+  isBlocked Boolean @default(false)
+  isTricity Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-orders Order[]
-addresses Address[]
-Cart Cart[]
-CartItem CartItem[]
+  orders Order[]
+  addresses Address[]
+  Cart Cart[]
+  CartItem CartItem[]
 
-@@index([email])
-@@index([phone])
-@@index([role])
-@@index([isBlocked])
-@@index([isTricity])
-@@index([createdAt])
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+  @@index([isBlocked])
+  @@index([isTricity])
+  @@index([createdAt])
 }
 
 model Address {
-id Int @id @default(autoincrement())
-pincodeId Int?
-pincode Pincode? @relation(fields: [pincodeId], references: [id])
-userId Int
-user User @relation(fields: [userId], references: [id])
-label String // e.g. Home, Work
-house String // House number and floor
-street String
-city String
-landmark String?
-address1 String?
-createdAt DateTime @default(now())
-orders Order[]
+  id Int @id @default(autoincrement())
+  pincodeId Int?
+  pincode Pincode? @relation(fields: [pincodeId], references: [id])
+  userId Int
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label String // e.g. Home, Work
+  house String // House number and floor
+  street String
+  city String
+  landmark String?
+  address1 String?
+  createdAt DateTime @default(now())
+  orders Order[]
 
-@@index([pincodeId])
-@@index([userId])
-@@index([city])
-@@index([createdAt])
+  @@index([pincodeId])
+  @@index([userId])
+  @@index([city])
+  @@index([createdAt])
 }
 
 model Pincode {
-id Int @id @default(autoincrement())
-code Int @unique @db.Integer // Ensures pincode is a valid integer
-deliveryPrice Float @db.DoublePrecision // Ensures proper decimal handling
-addresses Address[]
+  id Int @id @default(autoincrement())
+  code Int @unique @db.Integer // Ensures pincode is a valid integer
+  deliveryPrice Float @db.DoublePrecision // Ensures proper decimal handling
+  addresses Address[]
 
-@@index([code])
-@@index([deliveryPrice])
+  @@index([code])
+  @@index([deliveryPrice])
 }
 
 model EmailVerification {
-id Int @id @default(autoincrement())
-email String
-code String
-expiresAt DateTime
-createdAt DateTime @default(now())
+  id Int @id @default(autoincrement())
+  email String
+  code String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
-@@index([email])
-@@index([code])
-@@index([expiresAt])
-@@index([createdAt])
+  @@index([email])
+  @@index([code])
+  @@index([expiresAt])
+  @@index([createdAt])
 }
 
 model BlockedUser {
-id Int @id @default(autoincrement())
-email String @unique
-reason String?
-createdAt DateTime @default(now())
+  id Int @id @default(autoincrement())
+  email String @unique
+  reason String?
+  createdAt DateTime @default(now())
 
-@@index([email])
-@@index([createdAt])
+  @@index([email])
+  @@index([createdAt])
 }
 
 model Category {
-id Int @id @default(autoincrement())
-name String @unique
-description String?
-imageUrl String?
-products Product[]
-createdAt DateTime @default(now())
+  id Int @id @default(autoincrement())
+  name String @unique
+  description String?
+  imageUrl String?
+  products Product[]
+  createdAt DateTime @default(now())
 
-@@index([name])
-@@index([createdAt])
+  @@index([name])
+  @@index([createdAt])
 }
 
 model Product {
-id Int @id @default(autoincrement())
-itemCode String @unique // CSV: Item Code
-name String // CSV: Item Description
-description String?
-imageUrl String?
-price Float // CSV: MRP
-originalPrice Float?
-isFeatured Boolean @default(false)
-isBestseller Boolean @default(false)
-isPipe Boolean @default(false)
-categoryId Int
-category Category @relation(fields: [categoryId], references: [id])
-brandGroup String? // CSV: Brand Group
-availableStock Int @default(0)
-stockQuantity Int? @default(0) // CSV: Stock
-rating Float? @default(0.0)
-reviewsCount Int? @default(0)
-taxPercent Float? @default(0.0)
-createdAt DateTime @default(now())
+  id Int @id @default(autoincrement())
+  itemCode String @unique // CSV: Item Code
+  name String // CSV: Item Description
+  description String?
+  imageUrl String?
+  price Float // CSV: MRP
+  originalPrice Float?
+  isFeatured Boolean @default(false)
+  isBestseller Boolean @default(false)
+  isPipe Boolean @default(false)
+  categoryId Int
+  category Category @relation(fields: [categoryId], references: [id])
+  brandGroup String? // CSV: Brand Group
+  availableStock Int @default(0)
+  stockQuantity Int? @default(0) // CSV: Stock
+  rating Float? @default(0.0)
+  reviewsCount Int? @default(0)
+  taxPercent Float? @default(0.0)
+  createdAt DateTime @default(now())
 
-sdp Float? // CSV: SDP
-nrp Float? // CSV: NRP*
-mrp Float? // CSV: MRP
-hsn String? // CSV: HSN
-sgst Float? // CSV: SGST
-cgst Float? // CSV: CGST
-igst Float? // CSV: IGST
-cess Float? // CSV: CESS
+  sdp Float? // CSV: SDP
+  nrp Float? // CSV: NRP*
+  mrp Float? // CSV: MRP
+  hsn String? // CSV: HSN
+  sgst Float? // CSV: SGST
+  cgst Float? // CSV: CGST
+  igst Float? // CSV: IGST
+  cess Float? // CSV: CESS
 
-orderItems OrderItem[]
-CartItem CartItem[]
-images ProductImage[] // Relation to ProductImage model
+  orderItems OrderItem[]
+  CartItem CartItem[]
+  images ProductImage[] // Relation to ProductImage model
 
-@@index([itemCode])
-@@index([name])
-@@index([categoryId])
-@@index([isFeatured])
-@@index([isBestseller])
-@@index([isPipe])
-@@index([brandGroup])
-@@index([availableStock])
-@@index([price])
-@@index([rating])
-@@index([createdAt])
-@@index([hsn])
-@@map("Product") // Map to the Product table in the database
+  @@index([itemCode])
+  @@index([name])
+  @@index([categoryId])
+  @@index([isFeatured])
+  @@index([isBestseller])
+  @@index([isPipe])
+  @@index([brandGroup])
+  @@index([availableStock])
+  @@index([price])
+  @@index([rating])
+  @@index([createdAt])
+  @@index([hsn])
+  @@map("Product") // Map to the Product table in the database
 }
 
 model Order {
-id Int @id @default(autoincrement())
-userId Int
-user User @relation(fields: [userId], references: [id])
-addressId Int?
-address Address? @relation(fields: [addressId], references: [id])
-totalPrice Float // Keep for backward compatibility
-totalAmount Float? // Frontend expects this
-paymentMethod String? // Frontend sends this
-status String @default("pending")
-createdAt DateTime @default(now())
-items OrderItem[]
+  id Int @id @default(autoincrement())
+  userId Int
+  user User @relation(fields: [userId], references: [id])
+  addressId Int?
+  address Address? @relation(fields: [addressId], references: [id])
+  totalPrice Float // Keep for backward compatibility
+  totalAmount Float? // Frontend expects this
+  paymentMethod String? // Frontend sends this
+  status String @default("pending")
+  createdAt DateTime @default(now())
+  items OrderItem[]
 
-payment Payment?
+  payment Payment?
 
-@@index([userId])
-@@index([addressId])
-@@index([status])
-@@index([paymentMethod])
-@@index([createdAt])
-@@index([totalAmount])
+  @@index([userId])
+  @@index([addressId])
+  @@index([status])
+  @@index([paymentMethod])
+  @@index([createdAt])
+  @@index([totalAmount])
 }
 
 model OrderItem {
-id Int @id @default(autoincrement())
-orderId Int
-order Order @relation(fields: [orderId], references: [id])
-productId Int
-product Product @relation(fields: [productId], references: [id])
-quantity Int
-price Float
+  id Int @id @default(autoincrement())
+  orderId Int
+  order Order @relation(fields: [orderId], references: [id])
+  productId Int
+  product Product @relation(fields: [productId], references: [id])
+  quantity Int
+  price Float
 
-@@index([orderId])
-@@index([productId])
-@@index([price])
+  @@index([orderId])
+  @@index([productId])
+  @@index([price])
 }
 
 model Payment {
-id Int @id @default(autoincrement())
-orderId Int @unique
-order Order @relation(fields: [orderId], references: [id])
-paymentId String
-orderRef String
-signature String
-amount Float
-status String
-createdAt DateTime @default(now())
+  id Int @id @default(autoincrement())
+  orderId Int @unique
+  order Order @relation(fields: [orderId], references: [id])
+  paymentId String
+  orderRef String
+  signature String
+  amount Float
+  status String
+  createdAt DateTime @default(now())
 
-@@index([paymentId])
-@@index([orderRef])
-@@index([status])
-@@index([amount])
-@@index([createdAt])
+  @@index([paymentId])
+  @@index([orderRef])
+  @@index([status])
+  @@index([amount])
+  @@index([createdAt])
 }
 
 model Cart {
-id Int @id @default(autoincrement())
-userId Int @unique
-user User @relation(fields: [userId], references: [id])
-items CartItem[]
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  id Int @id @default(autoincrement())
+  userId Int @unique
+  user User @relation(fields: [userId], references: [id])
+  items CartItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-@@index([userId])
-@@index([createdAt])
-@@index([updatedAt])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model CartItem {
-id Int @id @default(autoincrement())
-cartId Int
-cart Cart @relation(fields: [cartId], references: [id])
-userId Int
-user User @relation(fields: [userId], references: [id])
-productId Int
-product Product @relation(fields: [productId], references: [id])
-quantity Int
-createdAt DateTime @default(now())
+  id Int @id @default(autoincrement())
+  cartId Int
+  cart Cart @relation(fields: [cartId], references: [id])
+  userId Int
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product Product @relation(fields: [productId], references: [id])
+  quantity Int
+  createdAt DateTime @default(now())
 
-@@index([cartId])
-@@index([userId])
-@@index([productId])
-@@index([createdAt])
+  @@index([cartId])
+  @@index([userId])
+  @@index([productId])
+  @@index([createdAt])
 }
 
 //THIS MODEL iS FOR IMAGES OF PRODUCT
 model ProductImage {
-id Int @id @default(autoincrement())
-productId Int
-imageUrl String
-altText String? // Optional alt text for the image
-sortOrder Int @default(0) // To maintain order of images
-createdAt DateTime @default(now())
-updatedAt DateTime @updatedAt
+  id Int @id @default(autoincrement())
+  productId Int
+  imageUrl String
+  altText String? // Optional alt text for the image
+  sortOrder Int @default(0) // To maintain order of images
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-//relations - CASCADE DELETE when product is deleted
-product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  //relations - CASCADE DELETE when product is deleted
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-@@index([productId])
-@@index([sortOrder])
-@@index([createdAt])
-@@map("product_images")
+  @@index([productId])
+  @@index([sortOrder])
+  @@index([createdAt])
+  @@map("product_images")
 }

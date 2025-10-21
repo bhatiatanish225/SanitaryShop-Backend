@@ -6,6 +6,8 @@ const helmet = require('helmet')
 const morgan = require('morgan')
 const { PrismaClient } = require('@prisma/client')
 
+const protect = require('./middleware/auth')
+
 const authRoutes = require('./routes/auth.routes')
 const categoryRoutes = require('./routes/category.routes')
 const productRoutes = require('./routes/product.routes')
